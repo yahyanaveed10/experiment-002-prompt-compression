@@ -1,85 +1,84 @@
-# experiment-002-prompt-compression
+# Experiment 002: what context matters?
 
-An interactive tool for measuring how prompt compression affects LLM output quality — token by token.
+A small, open experiment in embedding-based context selection.
 
-## What this does
+Give it a question and several context chunks. A local embedding model ranks each chunk and keeps a subset. The interface shows how much context was removed and whether known evidence survived.
 
-You give it a prompt. It compresses it (multiple strategies). It sends both versions to a model. It shows you — **at the logit level** — where the model's confidence shifts, where it diverges, and where it breaks.
+No generative LLM or API key is required.
 
-This is not a visualization of someone else's research. This is the experiment itself.
+## Research question
+
+> How much context can a small embedding model remove before it loses the evidence needed for a question?
+
+The built-in scenarios test three common failure modes:
+
+1. removing irrelevant distractors;
+2. preserving every step of multi-hop evidence;
+3. retaining exact details such as numbers and negation.
+
+Read [the research basis](docs/research.md) for the papers, metrics, and limits.
+
+## Run locally
+
+Requires Python 3.10 or newer.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+uvicorn app.main:app --reload
+```
+
+Open <http://127.0.0.1:8000>.
+
+The first selection downloads `sentence-transformers/all-MiniLM-L6-v2`. Later runs use the local model cache.
+
+## Run with Docker
+
+```bash
+docker build -t experiment-002 .
+docker run --rm -p 8000:8000 experiment-002
+```
+
+Open <http://127.0.0.1:8000>.
+
+## Test
+
+```bash
+pip install -e '.[dev]'
+pytest
+node --check app/static/app.js
+```
+
+Tests use a fake embedder, so they do not download a model.
 
 ## How it works
 
-```
-User prompt → Compression (multiple strategies) → Model inference (full + compressed)
-                                                 → Compare outputs token-by-token
-                                                 → Visualize logprob shifts
-```
-
-### Compression strategies (planned)
-- **Chunk pruning** — Remove retrieved context chunks by relevance score
-- **Summarization** — Condense sections via a smaller model
-- **Token filtering** — Remove low-information tokens (LLMLingua-style)
-- **Truncation** — Simple prefix/suffix cutting (baseline)
-
-### What you see
-- Each output token colored by log-probability (green = confident → red = uncertain)
-- Side-by-side: full prompt output vs. compressed prompt output
-- Divergence markers — exact token positions where the top prediction flips
-- Compression ratio vs. quality curve
-
-## Architecture
-
-```
-┌─────────────────────────────────────┐
-│  Frontend (static HTML/CSS/JS)      │
-│  - Prompt input                     │
-│  - Strategy selector                │
-│  - Token-level logprob visualizer   │
-│  - Divergence comparison view       │
-└──────────────┬──────────────────────┘
-               │ HTTP
-┌──────────────▼──────────────────────┐
-│  Backend (Python / FastAPI)         │
-│  - Compression pipeline             │
-│  - Model inference (Ollama / API)   │
-│  - Logprob extraction               │
-│  - Response comparison              │
-└─────────────────────────────────────┘
-               │
-┌──────────────▼──────────────────────┐
-│  Model provider                     │
-│  - Ollama (local, free, full logits)│
-│  - OpenAI (logprobs=True, top-20)   │
-│  - Bring your own key               │
-└─────────────────────────────────────┘
+```text
+question + chunks
+        ↓
+local sentence embeddings
+        ↓
+cosine similarity per chunk
+        ↓
+fixed budget or adaptive threshold
+        ↓
+selected context + evidence metrics
 ```
 
-## Requirements
+The backend is FastAPI. The frontend is plain HTML, CSS, and JavaScript. The selection logic is separate from model loading so it remains easy to test.
 
-- Python 3.10+
-- [Ollama](https://ollama.ai/) with any pulled model (e.g. `ollama pull llama3.1:8b`)
-- No API keys required for local mode
+Set `EMBEDDING_MODEL` to use another Sentence Transformers model:
 
-## Status
+```bash
+EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2 uvicorn app.main:app
+```
 
-🚧 **Groundwork laid.** Backend and frontend are not yet implemented. See the research context below for the empirical motivation.
+## What this does not prove
 
-## Research context
+Embedding similarity does not verify that a final answer is correct. Evidence recall is available only for the labeled scenarios. Custom input has no hidden ground truth.
 
-This tool is motivated by findings from:
-
-- **Jiang et al.** — *LongLLMLingua* (ACL 2024). [arXiv:2310.06839](https://arxiv.org/abs/2310.06839)
-  - 4x compression **improved** NaturalQuestions accuracy by 21.4% — removing distractor documents helps.
-  - The "lost in the middle" failure mode means more context can be worse than less.
-
-- **Pan et al.** — *LLMLingua-2* (ACL 2024). [arXiv:2403.12968](https://arxiv.org/abs/2403.12968)
-  - Token classification (not perplexity) achieves 2x compression with <2% quality drop.
-  - 3–6x faster than perplexity-based methods.
-
-- **Li et al.** — *Prompt Compression for Large Language Models: A Survey* (NAACL 2025). [arXiv:2410.12388](https://arxiv.org/abs/2410.12388)
-  - Taxonomy: hard prompts (token filtering) vs. soft prompts (learned embeddings).
-  - Hybrid approaches emerging. Prefix caching changes the cost calculus for static prompt components.
+A later optional reader could compare final answers using full and selected context. It is deliberately outside this small first experiment.
 
 ## License
 
