@@ -6,6 +6,11 @@ Give it a question and several context chunks. A local embedding model ranks eac
 
 No generative LLM or API key is required.
 
+Try the standalone experiment at
+<https://yahyanaveed10.github.io/experiment-002-prompt-compression/>.
+The public version runs the embedding model in the browser. The Python app uses
+the same model and scenarios locally.
+
 ## Research question
 
 > How much context can a small embedding model remove before it loses the evidence needed for a question?
@@ -48,6 +53,7 @@ Open <http://127.0.0.1:8000>.
 pip install -e '.[dev]'
 pytest
 node --check app/static/app.js
+node --check app/static/selector.js
 ```
 
 Tests use a fake embedder, so they do not download a model.
@@ -66,7 +72,9 @@ fixed budget or adaptive threshold
 selected context + evidence metrics
 ```
 
-The backend is FastAPI. The frontend is plain HTML, CSS, and JavaScript. The selection logic is separate from model loading so it remains easy to test.
+The backend is FastAPI. The frontend is plain HTML, CSS, and JavaScript. On
+GitHub Pages, Transformers.js runs an ONNX version of MiniLM directly in the
+visitor's browser. Both modes use the same scenario data.
 
 Set `EMBEDDING_MODEL` to use another Sentence Transformers model:
 

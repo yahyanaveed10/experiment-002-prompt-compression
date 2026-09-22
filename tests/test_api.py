@@ -13,10 +13,13 @@ client = TestClient(main.app)
 
 def test_home_and_scenarios_are_available():
     assert client.get("/").status_code == 200
+    assert client.get("/styles.css").status_code == 200
 
     response = client.get("/api/scenarios")
+    scenario_data = client.get("/scenarios.json")
     assert response.status_code == 200
     assert len(response.json()) == 3
+    assert scenario_data.json() == response.json()
 
 
 def test_selection_endpoint_uses_injected_embedder(monkeypatch):

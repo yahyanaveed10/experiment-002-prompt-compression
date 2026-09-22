@@ -1,3 +1,5 @@
+import { selectInBrowser } from './selector.js';
+
 const elements = {
   form: document.querySelector('[data-form]'),
   scenarios: document.querySelector('[data-scenarios]'),
@@ -24,17 +26,26 @@ const elements = {
 
 let scenarios = [];
 let activeScenario = null;
+let runsInBrowser = false;
+
+async function getJson(url, options) {
+  const response = await fetch(url, options);
+  if (!response.ok) throw new Error(`Request failed with status ${response.status}.`);
+  return response.json();
+}
 
 async function loadScenarios() {
   try {
-    const response = await fetch('/api/scenarios');
-    if (!response.ok) throw new Error('Could not load the research scenarios.');
-
-    scenarios = await response.json();
+    try {
+      scenarios = await getJson('./api/scenarios');
+    } catch {
+      scenarios = await getJson('./scenarios.json');
+      runsInBrowser = true;
+    }
     renderScenarioButtons();
     if (scenarios.length) selectScenario(scenarios[0]);
   } catch (error) {
-    showError(error.message);
+    showError('Could not load the research scenarios.');
   }
 }
 
@@ -97,24 +108,22 @@ async function runExperiment(event) {
   setLoading(true);
 
   try {
-    const response = await fetch('/api/select', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: elements.query.value.trim(),
-        chunks: getChunks(),
-        strategy: elements.strategy.value,
-        budget_percent: Number(elements.budget.value),
-        similarity_threshold: Number(elements.threshold.value),
-      }),
-    });
+    const input = {
+      query: elements.query.value.trim(),
+      chunks: getChunks(),
+      strategy: elements.strategy.value,
+      budget_percent: Number(elements.budget.value),
+      similarity_threshold: Number(elements.threshold.value),
+    };
+    const result = runsInBrowser
+      ? await selectInBrowser(input)
+      : await getJson('./api/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
 
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.detail || 'The experiment could not run.');
-    }
-
-    renderResult(payload);
+    renderResult(result);
   } catch (error) {
     showError(error.message);
   } finally {
