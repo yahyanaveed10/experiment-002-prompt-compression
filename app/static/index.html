@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="An open experiment in embedding-based context selection."
+  />
+  <title>Experiment 002 — What context matters?</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">EXPERIMENT 002</a>
+    <a href="https://github.com/yahyanaveed10/experiment-002-prompt-compression">
+      Source ↗
+    </a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Embedding-based context selection</p>
+      <h1>How much context can we remove before the evidence disappears?</h1>
+      <p class="hero-copy">
+        A small embedding model ranks each chunk against a question. No answer is
+        generated. The experiment measures what the selector keeps and what it loses.
+      </p>
+    </section>
+
+    <section class="experiment" aria-labelledby="experiment-title">
+      <div class="controls-panel">
+        <div>
+          <p class="step">01 / Choose a test</p>
+          <h2 id="experiment-title">Research scenarios</h2>
+          <div class="scenario-list" data-scenarios></div>
+          <p class="research-question" data-research-question></p>
+          <a class="paper-link" data-paper-link target="_blank" rel="noopener"></a>
+        </div>
+
+        <form data-form>
+          <label for="query">Question</label>
+          <textarea id="query" name="query" rows="3" required data-query></textarea>
+
+          <label for="context">
+            Context
+            <span>Separate chunks with a blank line</span>
+          </label>
+          <textarea id="context" name="context" rows="12" required data-context></textarea>
+
+          <div class="control-grid">
+            <div>
+              <label for="strategy">Selection method</label>
+              <select id="strategy" name="strategy" data-strategy>
+                <option value="budget">Fixed budget</option>
+                <option value="adaptive">Adaptive threshold</option>
+              </select>
+            </div>
+
+            <div data-budget-control>
+              <label for="budget">
+                Chunks to keep
+                <output for="budget" data-budget-output>40%</output>
+              </label>
+              <input
+                id="budget"
+                name="budget"
+                type="range"
+                min="20"
+                max="100"
+                step="20"
+                value="40"
+                data-budget
+              />
+            </div>
+
+            <div data-threshold-control hidden>
+              <label for="threshold">
+                Minimum similarity
+                <output for="threshold" data-threshold-output>0.40</output>
+              </label>
+              <input
+                id="threshold"
+                name="threshold"
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value="0.4"
+                data-threshold
+              />
+            </div>
+          </div>
+
+          <button class="run-button" type="submit" data-run>
+            Run selection
+          </button>
+          <p class="run-note">
+            The first run downloads a small embedding model. On the public site it
+            runs inside your browser; no prompt is sent to an API.
+          </p>
+        </form>
+      </div>
+
+      <div class="results-panel" aria-live="polite">
+        <div class="result-placeholder" data-placeholder>
+          <p class="step">02 / Inspect the result</p>
+          <p>Run a scenario to see what survives the context budget.</p>
+        </div>
+
+        <div data-results hidden>
+          <div class="results-heading">
+            <div>
+              <p class="step">02 / Inspect the result</p>
+              <h2>Selected context</h2>
+            </div>
+            <span class="method-badge" data-method></span>
+          </div>
+
+          <div class="metrics" data-metrics></div>
+          <div class="chunk-results" data-chunk-results></div>
+
+          <details class="selected-copy">
+            <summary>Copy-ready selected context</summary>
+            <pre data-selected-context></pre>
+          </details>
+        </div>
+
+        <div class="error" role="alert" data-error hidden></div>
+      </div>
+    </section>
+
+    <section class="explanation">
+      <p class="step">What this proves — and what it does not</p>
+      <div class="explanation-grid">
+        <h2>Embeddings can select evidence. They cannot verify an answer.</h2>
+        <div>
+          <p>
+            The selector uses semantic similarity to rank context. Evidence recall
+            tells us whether known supporting chunks survived.
+          </p>
+          <p>
+            This does not measure final answer quality. A later optional reader can
+            test whether the selected context changes a model's answer.
+          </p>
+          <a href="https://github.com/yahyanaveed10/experiment-002-prompt-compression/blob/main/docs/research.md">
+            Read the research basis ↗
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Built as a small, reproducible experiment.</span>
+    <span>Local model · No API key</span>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
